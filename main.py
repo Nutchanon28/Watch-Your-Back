@@ -32,7 +32,8 @@ pygame.display.set_caption("Watch Your Back")
 icon = pygame.image.load('handgun.png')
 pygame.display.set_icon(icon)
 
-global_speed = 0.18
+# 0.18
+global_speed = 0.2
 
 # Player
 # playerImg = pygame.image.load('gunman_right.png')
@@ -47,13 +48,14 @@ player_jump_down = False
 player_onplatformlayer = 0
 
 # Enemy
-number_of_enemies = 1
+number_of_enemies = 0
 max_number_of_enemies = 5
+index_of_enemy = 0
 enemies = []
 
-for i in range(number_of_enemies):
+for i in range(max_number_of_enemies):
     e = Enemy(random.randint(0, 800), 480, global_speed * -
-              1.8, global_speed * -1.8, pygame.image.load('enemy_left.png'), 3)
+              1.8, global_speed * -1.8, pygame.image.load('enemy_left.png'), "dead", i, 4)
     enemies.append(e)
 
 # Enemy Spawning
@@ -201,8 +203,8 @@ while running:
     # gravity
     if playerY < 480:
         if player_jump_down:
-            # falling
-            playerY += 0.7
+            # falling, 0.7 with global speed 0.18 (global speed * 3.9)
+            playerY += global_speed * 5
             if playerY >= 296 and playerY <= 296 + 10 and playerX >= 270 and playerX <= 462 and player_onplatformlayer == 2:
                 player_jump_down = False
                 player_jump = 0
@@ -236,7 +238,7 @@ while running:
             if playerY_change == 0:
                 player_jump = 0
         else:
-            playerY += 0.7
+            playerY += global_speed * 5
             if playerY >= 480:
                 player_jump_down = False
                 playerY = 480
@@ -249,16 +251,30 @@ while running:
         playerX = 0
 
     # Spawning
-    if time.time() - spawn_time >= spawn_rate and number_of_enemies <= max_number_of_enemies:
+    # if time.time() - spawn_time >= spawn_rate and number_of_enemies <= max_number_of_enemies:
+    if time.time() - spawn_time >= spawn_rate:
         spawn_time = time.time()
-        e = Enemy(spawn_points[random.randint(0, 5)][0], spawn_points[random.randint(0, 5)][1], global_speed * -
-                  1.8, global_speed * -1.8, pygame.image.load('enemy_left.png'), 3)
-        enemies.append(e)
-        number_of_enemies += 1
+        # e = Enemy(spawn_points[random.randint(0, 5)][0], spawn_points[random.randint(0, 5)][1], global_speed * -
+        #           1.8, global_speed * -1.8, pygame.image.load('enemy_left.png'), 4)
+        # enemies.append(e)
+        for enemy in enemies:
+            # spawn one that was dead
+            if enemy.state == "dead":
+                enemy.x = spawn_points[random.randint(0, 5)][0]
+                enemy.y = spawn_points[random.randint(0, 5)][1]
+                enemy.x_change = global_speed * -1.8
+                enemy.image =  pygame.image.load('enemy_left.png')
+                enemy.state = "alive"
+                enemy.health = 4
+                break
+        # enemies[index_of_enemy].state = "alive"
+        # number_of_enemies += 1
+        # index_of_enemy = index_of_enemy + 1 % 6
+        # print("enemy spawned and number_of_enemies = ", number_of_enemies)
 
-    enemy_dying = 0
+    # enemy_dying = 0
     for enemy in enemies:
-        if enemy.health == 0:
+        if enemy.health == 0 or enemy.state == "dead":
             continue
 
         enemy.x += enemy.x_change
@@ -281,6 +297,7 @@ while running:
         for bullet in bullets:
             collision = isCollision(enemy.x, enemy.y, bullet.x, bullet.y)
             if collision:
+                # print("number_of_enemies = ", number_of_enemies)
                 # explosion_sound = mixer.Sound('explosion.wav')
                 bulletX = -69
                 bullet_state = "ready"
@@ -288,15 +305,22 @@ while running:
                 bullet.x = -69
                 bullet.state = "ready"
                 bullet.time_when_shoot = 0
-                score_value += 1
-                enemy.health -= 1
+                if (enemy.x_change < 0 and bullet.direction == "left") or (enemy.x_change > 0 and bullet.direction == "right"):
+                    # selling point: shot in the back deals more damage
+                    enemy.health -= 2
+                    score_value += 2
+                else:
+                    enemy.health -= 1
+                    score_value += 1
+
                 if enemy.health <= 0:
-                    enemy_dying += 1
+                    enemy.state = "dead"
+                    # enemy_dying += 1
                     continue
 
         # enemy(enemy) # type error, fix later
         screen.blit(enemy.image, (enemy.x, enemy.y))
-    number_of_enemies -= enemy_dying
+    # number_of_enemies -= enemy_dying
 
     # Bullet Movement
     for bullet in bullets:
@@ -322,7 +346,7 @@ while running:
             if bullet.direction == "left":
                 bullet.x -= bullet.x_change
 
-    if score_value == 420:
+    if score_value >= 420:
         for enemy in enemies:
             enemy.y = 2000
         game_over_text()

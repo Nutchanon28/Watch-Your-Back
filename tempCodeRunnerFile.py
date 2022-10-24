@@ -1,2 +1,2 @@
 
-    screen.blit(platform, (104, 340))
+            pygame.quit()

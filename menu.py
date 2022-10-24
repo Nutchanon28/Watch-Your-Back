@@ -110,6 +110,6 @@ class MainMenu(Menu):
             elif self.state == 'Options':
                 pass
             elif self.state == 'Credits':
-                pass
+                self.game.curr_scoreboard.run_display = True
             self.run_display = False
         
